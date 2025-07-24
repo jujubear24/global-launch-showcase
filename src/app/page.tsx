@@ -1,103 +1,112 @@
-import Image from "next/image";
+"use client"; 
 
+import { Globe, Zap, ShieldCheck, Cpu, Server, BarChart3 } from 'lucide-react';
+
+// Main Component for the Home Page
 export default function Home() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="bg-gray-900 text-white min-h-screen font-sans">
+      <main className="container mx-auto px-4 py-8 md:py-16">
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
+        {/* --- Hero Section --- */}
+        <section className="text-center mb-20 md:mb-32">
+
+          <h1 className="text-5xl md:text-7xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-cyan-400">
+            Aether Drone
+          </h1>
+          
+          <p className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-8">
+            Capture your world from a new perspective. Unmatched stability, 4K clarity, and intelligent flight modes in a stunningly compact design.
+          </p>
+
+          <div className="flex justify-center gap-4 mb-12">
+            <a href="#features" className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-8 rounded-full transition-transform transform hover:scale-105">
+              Learn More
+            </a>
+            <a href="#insights" className="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 px-8 rounded-full transition-transform transform hover:scale-105">
+              Live Insights
+            </a>
+          </div>
+
+          <div className="w-full max-w-4xl mx-auto bg-gray-800 rounded-lg shadow-2xl overflow-hidden">
+             <img 
+                src="https://placehold.co/1200x600/1a202c/ffffff?text=Aether+Drone" 
+                alt="Aether Drone" 
+                className="w-full h-auto object-cover"
+                onError={(e) => { (e.currentTarget as HTMLImageElement).src = 'https://placehold.co/1200x600/1a202c/ffffff?text=Image+Not+Found'; }}
+             />
+          </div>
+          
+        </section>
+
+        {/* --- Features Section --- */}
+        <section id="features" className="mb-20 md:mb-32">
+
+          <h2 className="text-4xl font-bold text-center mb-12">Why Aether is Different</h2>
+
+          <div className="grid md:grid-cols-3 gap-8 text-center">
+            <div className="bg-gray-800 p-8 rounded-lg">
+              <Globe className="h-12 w-12 mx-auto mb-4 text-purple-400" />
+              <h3 className="text-2xl font-semibold mb-2">Global Reach</h3>
+              <p className="text-gray-400">Deployed on a global CDN for instant access, anywhere in the world.</p>
+            </div>
+
+            <div className="bg-gray-800 p-8 rounded-lg">
+              <Zap className="h-12 w-12 mx-auto mb-4 text-purple-400" />
+              <h3 className="text-2xl font-semibold mb-2">Blazing Fast</h3>
+              <p className="text-gray-400">A serverless architecture means sub-second load times and zero lag.</p>
+            </div>
+
+            <div className="bg-gray-800 p-8 rounded-lg">
+              <ShieldCheck className="h-12 w-12 mx-auto mb-4 text-purple-400" />
+              <h3 className="text-2xl font-semibold mb-2">Ironclad Security</h3>
+              <p className="text-gray-400">Protected by a Web Application Firewall against modern threats.</p>
+            </div>
+
+          </div>
+        </section>
+
+        {/* --- Live Technical Insights Section --- */}
+        {/* This is the placeholder for our "smart" dashboard. We will make this interactive later. */}
+        <section id="insights" className="bg-gray-800 p-8 rounded-lg shadow-xl">
+          <h2 className="text-4xl font-bold text-center mb-4">Live Technical Insights</h2>
+          <p className="text-center text-gray-400 mb-12">
+            This website is self-aware. The data below is generated in real-time to demonstrate the power of our cloud architecture.
+          </p>
+          <div className="grid md:grid-cols-3 gap-8">
+            {/* Placeholder for Live Data - To be implemented */}
+            <div className="bg-gray-900 p-6 rounded-lg text-center">
+              <Cpu className="h-10 w-10 mx-auto mb-3 text-cyan-400" />
+              <h3 className="text-lg font-semibold text-gray-400 mb-2">Your Location</h3>
+              <p className="text-2xl font-bold text-white">- - -</p>
+            </div>
+            <div className="bg-gray-900 p-6 rounded-lg text-center">
+              <Server className="h-10 w-10 mx-auto mb-3 text-cyan-400" />
+              <h3 className="text-lg font-semibold text-gray-400 mb-2">Serving Edge Location</h3>
+              <p className="text-2xl font-bold text-white">- - -</p>
+            </div>
+            <div className="bg-gray-900 p-6 rounded-lg text-center">
+              <BarChart3 className="h-10 w-10 mx-auto mb-3 text-cyan-400" />
+              <h3 className="text-lg font-semibold text-gray-400 mb-2">Threats Blocked (Last Hour)</h3>
+              <p className="text-2xl font-bold text-white">- - -</p>
+            </div>
+          </div>
+           <div className="text-center mt-8">
+              <button className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-full transition-transform transform hover:scale-105 disabled:opacity-50" disabled>
+                Test Security (Coming Soon)
+              </button>
+            </div>
+        </section>
+
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+
+      {/* --- Footer --- */}
+      <footer className="text-center py-8 border-t border-gray-700">
+        <p className="text-gray-500">&copy; {new Date().getFullYear()} Aether Dynamics. All rights reserved.</p>
       </footer>
+
     </div>
   );
 }
+
+
