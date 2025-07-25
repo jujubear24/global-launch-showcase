@@ -9,7 +9,7 @@ export default function Home() {
   const [threats, setThreats] = useState('...');
 
   useEffect(() => {
-    const apiUrl = 'https://u1v9pb60g4.execute-api.us-east-2.amazonaws.com/default/getVisitorLocation'; 
+    const apiUrl = '/api/default/getVisitorLocation'; 
 
     // This check prevents the app from crashing if the URL isn't set.
     if (apiUrl.includes('PASTE_YOUR_API_ENDPOINT_URL_HERE') || !apiUrl) {
