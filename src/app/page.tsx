@@ -9,7 +9,7 @@ export default function Home() {
   const [threats, setThreats] = useState('...');
 
   useEffect(() => {
-    const apiUrl = '/api/default/getVisitorLocation'; 
+    const apiUrl = '/default/getVisitorLocation'; 
 
     // This check prevents the app from crashing if the URL isn't set.
     if (apiUrl.includes('PASTE_YOUR_API_ENDPOINT_URL_HERE') || !apiUrl) {
