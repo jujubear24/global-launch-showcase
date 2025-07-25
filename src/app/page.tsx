@@ -98,7 +98,7 @@ export default function Home() {
             <div className="bg-gray-900 p-6 rounded-lg text-center">
               <Server className="h-10 w-10 mx-auto mb-3 text-cyan-400" />
               <h3 className="text-lg font-semibold text-gray-400 mb-2">Serving Edge Location</h3>
-              <p className="text-2xl font-bold text-white">{edgeLocation}</p>
+              <p className="text-2xl font-bold text-white truncate">{edgeLocation}</p>
             </div>
             <div className="bg-gray-900 p-6 rounded-lg text-center">
               <BarChart3 className="h-10 w-10 mx-auto mb-3 text-cyan-400" />
