@@ -30,7 +30,7 @@ export default function Home() {
 
           <div className="w-full max-w-4xl mx-auto bg-gray-800 rounded-lg shadow-2xl overflow-hidden">
              <img 
-                src="https://placehold.co/1200x600/1a202c/ffffff?text=Aether+Drone" 
+                src="/aether_drone.png" 
                 alt="Aether Drone" 
                 className="w-full h-auto object-cover"
                 onError={(e) => { (e.currentTarget as HTMLImageElement).src = 'https://placehold.co/1200x600/1a202c/ffffff?text=Image+Not+Found'; }}
