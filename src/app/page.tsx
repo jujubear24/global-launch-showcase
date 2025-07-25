@@ -6,16 +6,25 @@ import { Globe, Zap, ShieldCheck, Cpu, Server, BarChart3 } from 'lucide-react';
 export default function Home() {
   const [location, setLocation] = useState('...');
   const [edgeLocation, setEdgeLocation] = useState('...');
-  const [threats, setThreats] = useState('...');
+  const [threats, setThreats] = useState(0); // Default to 0
+
+  // This function will be called when the "Test Security" button is clicked
+  const handleTestSecurity = () => {
+    // This creates a URL with a query string that mimics a basic XSS attack.
+    // The WAF should block this request.
+    const maliciousUrl = window.location.origin + '?q=<script>alert("xss")</script>';
+    window.location.href = maliciousUrl;
+  };
 
   useEffect(() => {
-    const apiUrl = '/default/getVisitorLocation'; 
+    // --- API Endpoint URLs ---
+    const locationApiUrl = '/default/getVisitorLocation'; 
+    const wafApiUrl = '/default/getWafBlockCount';
 
-    fetch(apiUrl)
+    // --- Fetch Location Data ---
+    fetch(locationApiUrl)
       .then(response => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         return response.json();
       })
       .then(data => {
@@ -27,6 +36,21 @@ export default function Home() {
         setLocation('Unavailable');
         setEdgeLocation('Unavailable');
       });
+
+    // --- Fetch WAF Block Count ---
+    fetch(wafApiUrl)
+      .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+      })
+      .then(data => {
+        setThreats(data.blockCount || 0);
+      })
+      .catch(error => {
+        console.error("Error fetching WAF data:", error);
+        setThreats(0); // Default to 0 on error
+      });
+
   }, []);
 
   return (
@@ -35,7 +59,6 @@ export default function Home() {
 
         {/* --- Hero Section --- */}
         <section className="text-center mb-20 md:mb-32">
-          {/* Responsive Font Size */}
           <h1 className="text-5xl md:text-7xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-cyan-400">
             Aether Drone
           </h1>
@@ -62,7 +85,6 @@ export default function Home() {
         {/* --- Features Section --- */}
         <section id="features" className="mb-20 md:mb-32">
           <h2 className="text-4xl font-bold text-center mb-12">Why Aether is Different</h2>
-          {/* Responsive Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
             <div className="bg-gray-800 p-8 rounded-lg">
               <Globe className="h-12 w-12 mx-auto mb-4 text-purple-400" />
@@ -88,21 +110,17 @@ export default function Home() {
           <p className="text-center text-gray-400 mb-12">
             This website is self-aware. The data below is generated in real-time to demonstrate the power of our cloud architecture.
           </p>
-          {/* Responsive Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Card 1 */}
             <div className="bg-gray-900 p-6 rounded-lg text-center min-w-0">
               <Cpu className="h-10 w-10 mx-auto mb-3 text-cyan-400" />
               <h3 className="text-lg font-semibold text-gray-400 mb-2">Your Location</h3>
               <p className="text-2xl font-bold text-white truncate">{location}</p>
             </div>
-            {/* Card 2 */}
             <div className="bg-gray-900 p-6 rounded-lg text-center min-w-0">
               <Server className="h-10 w-10 mx-auto mb-3 text-cyan-400" />
               <h3 className="text-lg font-semibold text-gray-400 mb-2">Serving Edge Location</h3>
               <p className="text-2xl font-bold text-white truncate">{edgeLocation}</p>
             </div>
-            {/* Card 3 */}
             <div className="bg-gray-900 p-6 rounded-lg text-center min-w-0">
               <BarChart3 className="h-10 w-10 mx-auto mb-3 text-cyan-400" />
               <h3 className="text-lg font-semibold text-gray-400 mb-2">Threats Blocked (Last Hour)</h3>
@@ -110,8 +128,11 @@ export default function Home() {
             </div>
           </div>
            <div className="text-center mt-8">
-              <button className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-full transition-transform transform hover:scale-105 disabled:opacity-50" disabled>
-                Test Security (Coming Soon)
+              <button 
+                onClick={handleTestSecurity}
+                className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-full transition-transform transform hover:scale-105"
+              >
+                Test Security
               </button>
             </div>
         </section>
@@ -125,4 +146,3 @@ export default function Home() {
     </div>
   );
 }
-
