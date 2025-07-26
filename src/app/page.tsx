@@ -6,57 +6,40 @@ import { Globe, Zap, ShieldCheck, Cpu, Server, BarChart3 } from 'lucide-react';
 export default function Home() {
   const [location, setLocation] = useState('...');
   const [edgeLocation, setEdgeLocation] = useState('...');
-  const [threats, setThreats] = useState(0); // Default to 0
+  const [threats, setThreats] = useState(0);
 
-  // This function will be called when the "Test Security" button is clicked
   const handleTestSecurity = () => {
-    // This creates a URL with a query string that mimics a basic XSS attack.
-    // The WAF should block this request.
     const maliciousUrl = window.location.origin + '?q=<script>alert("xss")</script>';
     window.location.href = maliciousUrl;
   };
 
   useEffect(() => {
-    // --- API Endpoint URLs ---
-    const locationApiUrl = '/default/getVisitorLocation'; 
-    const wafApiUrl = '/default/getWafBlockCount';
+    // --- single, reliable API endpoint ---
+    const baseApiUrl = '/default/getVisitorLocation'; 
 
     // --- Fetch Location Data ---
-    fetch(locationApiUrl)
-      .then(response => {
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        return response.json();
-      })
+    fetch(`${baseApiUrl}?action=location`)
+      .then(response => response.json())
       .then(data => {
         setLocation(`${data.city || 'N/A'}, ${data.country || 'N/A'}`);
         setEdgeLocation(data.edgeLocation || 'N/A');
       })
-      .catch(error => {
-        console.error("Error fetching location data:", error);
-        setLocation('Unavailable');
-        setEdgeLocation('Unavailable');
-      });
+      .catch(error => console.error("Error fetching location data:", error));
 
     // --- Fetch WAF Block Count ---
-    fetch(wafApiUrl)
-      .then(response => {
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        return response.json();
-      })
+    fetch(`${baseApiUrl}?action=waf`)
+      .then(response => response.json())
       .then(data => {
         setThreats(data.blockCount || 0);
       })
-      .catch(error => {
-        console.error("Error fetching WAF data:", error);
-        setThreats(0); // Default to 0 on error
-      });
+      .catch(error => console.error("Error fetching WAF data:", error));
 
   }, []);
 
   return (
     <div className="bg-gray-900 text-white min-h-screen font-sans">
       <main className="container mx-auto px-4 py-8 md:py-16">
-
+        {/* ... The rest of your JSX is unchanged ... */}
         {/* --- Hero Section --- */}
         <section className="text-center mb-20 md:mb-32">
           <h1 className="text-5xl md:text-7xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-cyan-400">
