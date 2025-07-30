@@ -1,12 +1,44 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { Globe, Zap, ShieldCheck, Cpu, Server, BarChart3 } from 'lucide-react';
+import { Globe, Zap, ShieldCheck, Cpu, Server, BarChart3, X } from 'lucide-react';
+
+type ConfirmationModalProps = {
+  onConfirm: () => void;
+  onCancel: () => void;
+};
+
+const ConfirmationModal = ({ onConfirm, onCancel }: ConfirmationModalProps) => {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+      <div className="bg-gray-800 rounded-lg p-8 max-w-sm w-full text-center relative shadow-xl">
+        <button onClick={onCancel} className="absolute top-4 right-4 text-gray-400 hover:text-white">
+          <X size={24} />
+        </button>
+        <ShieldCheck className="h-16 w-16 mx-auto mb-4 text-red-500" />
+        <h3 className="text-2xl font-bold mb-4">Security Test</h3>
+        <p className="text-gray-300 mb-6">
+          You are about to send a request that mimics a common web attack.
+          Our WAF will block it, and you should see a **&quot;403 Forbidden&quot;** page. This is the expected result.
+        </p>
+        <div className="flex justify-center gap-4">
+          <button onClick={onCancel} className="bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-6 rounded-full">
+            Cancel
+          </button>
+          <button onClick={onConfirm} className="bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-6 rounded-full">
+            Proceed
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default function Home() {
   const [location, setLocation] = useState('...');
   const [edgeLocation, setEdgeLocation] = useState('...');
   const [threats, setThreats] = useState(0);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleTestSecurity = () => {
     const maliciousUrl = window.location.origin + '?q=<script>alert("xss")</script>';
@@ -14,11 +46,14 @@ export default function Home() {
   };
 
   useEffect(() => {
+    if (window.location.hostname !== 'localhost') {
+
     // --- single, reliable API endpoint ---
-    const baseApiUrl = '/default/getVisitorLocation'; 
+    const baseApiUrl = '/default/getVisitorLocation';
+    const cacheBuster = `?cacheBust=${new Date().getTime()}`;
 
     // --- Fetch Location Data ---
-    fetch(`${baseApiUrl}?action=location`)
+    fetch(`${baseApiUrl}?action=location&${cacheBuster.substring(1)}`)
       .then(response => response.json())
       .then(data => {
         setLocation(`${data.city || 'N/A'}, ${data.country || 'N/A'}`);
@@ -27,20 +62,27 @@ export default function Home() {
       .catch(error => console.error("Error fetching location data:", error));
 
     // --- Fetch WAF Block Count ---
-    fetch(`${baseApiUrl}?action=waf`)
+    fetch(`${baseApiUrl}?action=waf&${cacheBuster.substring(1)}`)
       .then(response => response.json())
       .then(data => {
         setThreats(data.blockCount || 0);
       })
       .catch(error => console.error("Error fetching WAF data:", error));
+    } else {
+      setLocation('Localhost');
+      setEdgeLocation('N/A');
+      setThreats(0);
+      
+    }
 
   }, []);
 
   return (
     <div className="bg-gray-900 text-white min-h-screen font-sans">
+      {/* Conditionally render the modal */}
+      {isModalOpen && <ConfirmationModal onConfirm={handleTestSecurity} onCancel={() => setIsModalOpen(false)} />}
+      
       <main className="container mx-auto px-4 py-8 md:py-16">
-        {/* ... The rest of your JSX is unchanged ... */}
-        {/* --- Hero Section --- */}
         <section className="text-center mb-20 md:mb-32">
           <h1 className="text-5xl md:text-7xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-cyan-400">
             Aether Drone
@@ -112,7 +154,7 @@ export default function Home() {
           </div>
            <div className="text-center mt-8">
               <button 
-                onClick={handleTestSecurity}
+                onClick={() => setIsModalOpen(true)}
                 className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-full transition-transform transform hover:scale-105"
               >
                 Test Security
