@@ -33,40 +33,43 @@ The website includes a "Live Technical Insights" dashboard that makes the invisi
 ---
 
 ## Architectural Diagram
-
 ```mermaid
-graph TD
+flowchart LR
     subgraph "User"
-        A[End User]
+        A[End User 🧑]
     end
 
     subgraph "CDN & Security Layer"
-        B(AWS WAF)
-        C(AWS CloudFront)
+        B[AWS WAF 🔒]
+        C[CloudFront 🚀]
     end
 
     subgraph "Static Frontend Origin"
-        D[S3 Bucket]
+        D[S3 Bucket 🗃️]
     end
 
     subgraph "Serverless API Backend"
-        E(API Gateway)
-        F[getVisitorLocation Lambda]
-        G[getWafBlockCount Lambda]
-        H[CloudWatch Logs]
+        E[API Gateway 🔗]
+        F[getVisitorLocation<br>Lambda 🐑]
+        G[getWafBlockCount<br>Lambda 🐑]
+        H[CloudWatch Logs 📊]
     end
 
     A -->|"HTTPS Request"| B
     B -->|"Filtered Traffic"| C
 
-    C -->|"Default Behavior (*)"| D
-    C -->|"API Behaviors (/default/*, /waf)"| E
+    C -->|"Default: <br>(static site)"| D
+    C -->|"API: <br>/default/*, /waf"| E
 
-    E -->|"Path: /default/getVisitorLocation"| F
-    E -->|"Path: /waf"| G
-    G -->|"Reads WAF Logs"| H
+    E -->|"GET /default/getVisitorLocation"| F
+    E -->|"GET /waf"| G
+    G -.->|"Reads WAF Logs"| H
+
+    %% Style customizations
+    style D fill:#FFFBCC,stroke:#333,stroke-width:2px
+    style F fill:#D6EAF8,stroke:#333,stroke-width:2px
+    style G fill:#D6EAF8,stroke:#333,stroke-width:2px
 ```
-
 ---
 
 ## Technology Stack
