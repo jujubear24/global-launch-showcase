@@ -112,4 +112,4 @@ This project is configured for fully automated deployment.
 
 ## Author
 
-**Jules Bahanyi** - [https://github.com/jujubear24] - [https://www.linkedin.com/in/jules-bahanyi/]
+**Jules Bahanyi** - [GitHub](https://github.com/jujubear24]) - [LinkedIn](https://www.linkedin.com/in/jules-bahanyi/)
