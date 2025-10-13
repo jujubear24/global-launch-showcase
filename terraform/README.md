@@ -51,3 +51,5 @@ When you are finished and want to tear down all the resources to avoid further c
 ### Configuration Details
 
 The main configuration variables are in variables.tf. You may want to customize these, especially the domain_name if you plan to use a custom domain for your project. If you do, you will need to manually validate the ACM certificate through DNS.
+
+
