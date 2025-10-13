@@ -115,7 +115,7 @@ This project uses a hybrid deployment model: AWS infrastructure is provisioned w
 
 2. **Configure GitHub Actions for Frontend Deployment**
 
-    The GitHub Actions workflow in .github/workflows/deploy.yml automatically builds and syncs your Next.js application to the S3 bucket created by Terraform. To enable this, you must configure the following secrets in your GitHub repository's settings (Settings > Secrets and variables > Actions):
+    The GitHub Actions workflow in ``.github/workflows/deploy.yml`` automatically builds and syncs your Next.js application to the S3 bucket created by Terraform. To enable this, you must configure the following secrets in your GitHub repository's settings (``Settings > Secrets and variables > Actions``):
 
     * ``AWS_ACCESS_KEY_ID``: Your AWS access key.
 
@@ -127,11 +127,11 @@ This project uses a hybrid deployment model: AWS infrastructure is provisioned w
 
 3. **Trigger the Frontend Deployment**
 
-    Once the secrets are configured, any git push to the main branch will automatically trigger the GitHub Action. It will build your Next.js application, sync the static files to the S3 bucket, and invalidate the CloudFront cache to make your changes live.
+    Once the secrets are configured, any ``git push`` to the ``main`` branch will automatically trigger the GitHub Action. It will build your Next.js application, sync the static files to the S3 bucket, and invalidate the CloudFront cache to make your changes live.
 
 4. **Destroying the Infrastructure**
 
-    To tear down all the AWS resources and stop incurring costs, simply run the destroy command from within the terraform directory:
+    To remove all the AWS resources created by Terraform and prevent ongoing costs, navigate into the ``/terraform`` directory in your terminal and run the ``destroy`` command. Terraform will show you a plan of all the resources that will be deleted and ask for confirmation before proceeding.
 
     ```bash
     terraform destroy
