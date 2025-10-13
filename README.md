@@ -140,5 +140,3 @@ This project uses a hybrid deployment model: AWS infrastructure is provisioned w
 ## Author
 
 **Jules Bahanyi** - [GitHub](https://github.com/jujubear24]) - [LinkedIn](https://www.linkedin.com/in/jules-bahanyi/)
-
-
