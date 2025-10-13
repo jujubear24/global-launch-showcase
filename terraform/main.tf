@@ -5,7 +5,6 @@
 # - Lambda function for API backend
 # - API Gateway for RESTful endpoints
 # - CloudFront CDN with WAF protection
-# - ACM certificate for SSL/TLS
 #==============================================================================
 
 #------------------------------------------------------------------------------
@@ -129,7 +128,7 @@ data "archive_file" "lambda_zip" {
 resource "aws_lambda_function" "api_handler" {
   function_name    = "${var.project_name}-api-handler"
   handler          = "handler.lambda_handler"
-  runtime          = "python3.14.0"
+  runtime          = "python3.12"
   role             = aws_iam_role.lambda_exec_role.arn
   filename         = data.archive_file.lambda_zip.output_path
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
@@ -234,36 +233,14 @@ resource "aws_api_gateway_stage" "api_stage" {
 }
 
 #------------------------------------------------------------------------------
-# ACM Certificate for SSL/TLS
-#------------------------------------------------------------------------------
-
-# Request SSL/TLS certificate from AWS Certificate Manager
-# Note: Must be created in us-east-1 for CloudFront usage
-resource "aws_acm_certificate" "site_cert" {
-  provider = aws.us_east_1
-
-  domain_name       = var.domain_name
-  validation_method = "DNS"
-
-  # Include www subdomain in certificate
-  subject_alternative_names = ["www.${var.domain_name}"]
-
-  lifecycle {
-    create_before_destroy = true
-  }
-
-  tags = {
-    Project = var.project_name
-  }
-}
-
-#------------------------------------------------------------------------------
 # CloudWatch Log Group for WAF Logs
 #------------------------------------------------------------------------------
 
 # Create CloudWatch Log Group for WAF logs
 # Note: Log group name must start with 'aws-waf-logs-' for WAF logging
+# and be in the us-east-1 region for CloudFront WAFs
 resource "aws_cloudwatch_log_group" "waf_logs" {
+  provider          = aws.us_east_1
   name              = "aws-waf-logs-${var.project_name}-web-acl"
   retention_in_days = 7
 }
@@ -473,11 +450,9 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   }
 
   # SSL/TLS certificate configuration
-  # Uses ACM certificate for custom domain or CloudFront default for example.com
+  # This uses the default CloudFront certificate for HTTPS
   viewer_certificate {
-    acm_certificate_arn            = var.domain_name == "example.com" ? null : aws_acm_certificate.site_cert.arn
-    cloudfront_default_certificate = var.domain_name == "example.com" ? true : false
-    ssl_support_method             = var.domain_name == "example.com" ? null : "sni-only"
+    cloudfront_default_certificate = true
     minimum_protocol_version       = "TLSv1.2_2018"
   }
 
@@ -485,4 +460,3 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
     Project = var.project_name
   }
 }
-

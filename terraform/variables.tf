@@ -7,14 +7,10 @@ variable "aws_region" {
 }
 
 variable "project_name" {
-    description = "A unique name for the project, used to prefix resource names."
+    description = "The name of the project"
     type        = string
     default     = "global-launch-showcase"
 }
 
-variable "domain_name" {
-    description = "The custom domain name for the website (e.g., https://www.google.com/search?q=yoursite.com). You must own this domain."
-    type        = string
-    default     = "example.com" # <-- IMPORTANT: Replace with your actual domain name
-}
+
 
