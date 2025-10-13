@@ -236,11 +236,11 @@ resource "aws_api_gateway_stage" "api_stage" {
 # CloudWatch Log Group for WAF Logs
 #------------------------------------------------------------------------------
 
-# Create CloudWatch Log Group for WAF logs
-# Note: Log group name must start with 'aws-waf-logs-' for WAF logging
-# and be in the us-east-1 region for CloudFront WAFs
+# Create CloudWatch Log Group for WAF logs in us-east-1
+# Note: Log group name must start with 'aws-waf-logs-' and be in us-east-1
 resource "aws_cloudwatch_log_group" "waf_logs" {
-  provider          = aws.us_east_1
+  provider = aws.us_east_1
+
   name              = "aws-waf-logs-${var.project_name}-web-acl"
   retention_in_days = 7
 }
@@ -249,17 +249,7 @@ resource "aws_cloudwatch_log_group" "waf_logs" {
 # WAF Web ACL Configuration
 #------------------------------------------------------------------------------
 
-# Create IP set for WAF (empty by default, can be populated as needed)
-resource "aws_wafv2_ip_set" "ipset" {
-  provider = aws.us_east_1
-
-  name               = "${var.project_name}-ipset"
-  scope              = "CLOUDFRONT"
-  ip_address_version = "IPV4"
-  addresses          = []
-}
-
-# Create WAF Web ACL with security rules
+# Create WAF Web ACL with security rules (in us-east-1 for CloudFront)
 resource "aws_wafv2_web_acl" "web_acl" {
   provider = aws.us_east_1
 
@@ -272,7 +262,6 @@ resource "aws_wafv2_web_acl" "web_acl" {
   }
 
   # Rule 1: AWS Managed Common Rule Set
-  # Protects against common threats like SQL injection, command injection, etc.
   rule {
     name     = "AWS-AWSManagedRulesCommonRuleSet"
     priority = 1
@@ -343,7 +332,7 @@ resource "aws_wafv2_web_acl_logging_configuration" "web_acl_logging" {
 }
 
 #------------------------------------------------------------------------------
-# CloudFront Distribution Configuration
+# CloudFront Distribution and S3 Bucket Policy
 #------------------------------------------------------------------------------
 
 # Create Origin Access Identity for secure S3 access
@@ -351,8 +340,9 @@ resource "aws_cloudfront_origin_access_identity" "oai" {
   comment = "OAI for ${var.project_name}"
 }
 
-# Define S3 bucket policy to allow CloudFront access only
+# Define S3 bucket policy with TWO statements
 data "aws_iam_policy_document" "s3_policy" {
+  # Statement 1: Allow CloudFront to get objects
   statement {
     actions   = ["s3:GetObject"]
     resources = ["${aws_s3_bucket.site_bucket.arn}/*"]
@@ -360,6 +350,25 @@ data "aws_iam_policy_document" "s3_policy" {
     principals {
       type        = "AWS"
       identifiers = [aws_cloudfront_origin_access_identity.oai.iam_arn]
+    }
+  }
+
+  # Statement 2: Allow GitHub Actions user to sync files
+  statement {
+    actions = [
+      "s3:GetObject",
+      "s3:ListBucket",
+      "s3:DeleteObject",
+      "s3:PutObject"
+    ]
+    resources = [
+      aws_s3_bucket.site_bucket.arn,
+      "${aws_s3_bucket.site_bucket.arn}/*"
+    ]
+    principals {
+      type = "AWS"
+      # IMPORTANT: Replace with your actual IAM user ARN from the error message
+      identifiers = ["arn:aws:iam::288232812020:user/github-actions-deployer"]
     }
   }
 }
@@ -450,10 +459,9 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   }
 
   # SSL/TLS certificate configuration
-  # This uses the default CloudFront certificate for HTTPS
   viewer_certificate {
     cloudfront_default_certificate = true
-    minimum_protocol_version       = "TLSv1.2_2018"
+    minimum_protocol_version       = "TLSv1.2_2021"
   }
 
   tags = {
