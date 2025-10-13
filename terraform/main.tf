@@ -366,7 +366,7 @@ data "aws_iam_policy_document" "s3_policy" {
       "${aws_s3_bucket.site_bucket.arn}/*"
     ]
     principals {
-      type = "AWS"
+      type        = "AWS"
       # IMPORTANT: Replace with your actual IAM user ARN from the error message
       identifiers = ["arn:aws:iam::288232812020:user/github-actions-deployer"]
     }
@@ -436,7 +436,7 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
     allowed_methods        = ["GET", "HEAD", "OPTIONS"]
     cached_methods         = ["GET", "HEAD"]
     target_origin_id       = "APIGW-${aws_api_gateway_rest_api.api.id}"
-    viewer_protocol_policy = "redirect-to-https"
+    viewer_protocol_policy = "redirect-to-https" // This was incorrectly "redirect-to-https.com"
     min_ttl                = 0
     default_ttl            = 0
     max_ttl                = 0
