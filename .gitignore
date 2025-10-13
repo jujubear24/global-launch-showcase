@@ -39,3 +39,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+
+#Ignore vscode AI rules
+.github/instructions/codacy.instructions.md
+
+# Terraform
+.terraform
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.backup
+crash.log
+terraform.tfvars
+

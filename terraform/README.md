@@ -37,7 +37,7 @@ This command will build and deploy all the resources on AWS. Type yes when promp
     terraform apply
     ```
 
-    After applying, Terraform will output the ``cloudfront_domain_name``, which is the public URL for your website.
+    After applying, Terraform will output the ``cloudfront_domain_name, which is the public URL for your website.
 
 5. **Destroy the Infrastructure**:
 When you are finished and want to tear down all the resources to avoid further costs, run:

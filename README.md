@@ -2,7 +2,7 @@
 
 This project demonstrates a modern, secure, and cost-effective cloud architecture for hosting a high-performance static website. The example site is for a fictional product launch ("Aether Drone") and features a **live technical dashboard** that showcases the underlying cloud infrastructure in real-time.
 
-**Live Demo:** [**d1i0kf3pazdka3.cloudfront.net**](https://d1i0kf3pazdka3.cloudfront.net/) 🚀
+**Note**: The infrastructure for this project is managed entirely with Terraform. To see it in action, you must deploy it to your own AWS account using the instructions below.
 
 ---
 
@@ -80,12 +80,15 @@ flowchart LR
 * **Tailwind CSS:** A utility-first CSS framework for rapid UI development.
 * **TypeScript:** For static typing and improved code quality.
 
+### Infrastructure as Code (IaC)
+
+* **Terraform**: For defining and managing all AWS cloud resources in a repeatable and automated way.
+
 ### Cloud Infrastructure (AWS)
 
 * **S3:** For scalable, secure object storage of the static website files.
 * **CloudFront:** A global Content Delivery Network (CDN) for low-latency delivery and caching.
 * **WAF & Shield:** For protection against common web exploits and DDoS attacks.
-* **Certificate Manager (ACM):** For providing free and auto-renewing SSL/TLS certificates.
 * **Lambda:** For running serverless, on-demand backend code without managing servers.
 * **API Gateway:** To create, publish, and secure APIs for the Lambda functions.
 * **CloudWatch:** For logging, monitoring, and querying application and infrastructure metrics.
@@ -94,21 +97,45 @@ flowchart LR
 ### CI/CD
 
 * **Git & GitHub:** For version control and source code management.
-* **GitHub Actions:** For creating a fully automated CI/CD pipeline that builds and deploys the application on every push to the `main` branch.
+* **GitHub Actions:** For creating a CI/CD pipeline that builds the frontend application and syncs the static files to the S3 bucket upon deployment.
 
 ---
 
 ## Setup and Deployment
 
-This project is configured for fully automated deployment.
+This project uses a hybrid deployment model: AWS infrastructure is provisioned with Terraform first, and then the frontend application is deployed via the existing GitHub Actions workflow.
 
-1. **Prerequisites:** An AWS account and a GitHub repository.
-2. **Configuration:** The GitHub Actions workflow (`.github/workflows/deploy.yml`) requires the following secrets to be set in the repository's settings:
-    * `AWS_ACCESS_KEY_ID`
-    * `AWS_SECRET_ACCESS_KEY`
-    * `AWS_S3_BUCKET`
-    * `AWS_CLOUDFRONT_DISTRIBUTION_ID`
-3. **Deployment:** Any `git push` to the `main` branch will automatically trigger the GitHub Action, which builds the Next.js application, syncs the files to S3, and creates a CloudFront invalidation to publish the changes.
+1. **Deploy the AWS Infrastructure with Terraform**
+
+    All AWS resources (S3, CloudFront, Lambda, etc.) are defined in the ``/terraform`` directory.
+
+   For detailed, step-by-step instructions on how to deploy the infrastructure, please see the ``README`` inside the terraform directory: [terraform/README.md](./terraform/README.md)
+
+   After a successful ``terraform apply``, Terraform will display output values for ``s3_bucket_name`` and ``cloudfront_distribution_id``. You will need these values for the next step.
+
+2. **Configure GitHub Actions for Frontend Deployment**
+
+    The GitHub Actions workflow in .github/workflows/deploy.yml automatically builds and syncs your Next.js application to the S3 bucket created by Terraform. To enable this, you must configure the following secrets in your GitHub repository's settings (Settings > Secrets and variables > Actions):
+
+    * ``AWS_ACCESS_KEY_ID``: Your AWS access key.
+
+    * ``AWS_SECRET_ACCESS_KEY``: Your AWS secret key.
+
+    * ``AWS_S3_BUCKET``: The s3_bucket_name value from the Terraform output.
+
+    * ``AWS_CLOUDFRONT_DISTRIBUTION_ID``: The cloudfront_distribution_id value from the Terraform output.
+
+3. **Trigger the Frontend Deployment**
+
+    Once the secrets are configured, any git push to the main branch will automatically trigger the GitHub Action. It will build your Next.js application, sync the static files to the S3 bucket, and invalidate the CloudFront cache to make your changes live.
+
+4. **Destroying the Infrastructure**
+
+    To tear down all the AWS resources and stop incurring costs, simply run the destroy command from within the terraform directory:
+
+    ```bash
+    terraform destroy
+    ```
 
 ## Author
 
