@@ -19,6 +19,7 @@ resource "random_id" "bucket_suffix" {
 # Create S3 bucket to store static website files
 resource "aws_s3_bucket" "site_bucket" {
   bucket = "${var.project_name}-bucket-${random_id.bucket_suffix.hex}"
+  force_destroy = true
 
   tags = {
     Name    = "${var.project_name}-bucket"
