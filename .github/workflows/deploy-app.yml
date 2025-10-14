@@ -1,0 +1,90 @@
+# .github/workflows/deploy-app.yml
+# This workflow handles the DEPLOYMENT of the frontend application.
+# It runs automatically on every push to the main branch.
+# Fast deployments (~1-2 minutes) without touching infrastructure.
+
+name: Deploy Application
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "terraform/**"
+      - ".github/workflows/deploy-infra.yml"
+      - "*.md"
+      - ".gitignore"
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  deploy-app:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci  # More reliable than npm install for CI/CD
+
+      - name: Build application
+        run: npm run build
+        env:
+          # Add build-time environment variables if needed
+          NEXT_PUBLIC_API_URL: ${{ vars.API_GATEWAY_URL }}
+          # or VITE_API_URL for Vite projects
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+
+      - name: Verify Infrastructure Variables
+        run: |
+          if [ -z "${{ vars.S3_BUCKET_NAME }}" ] || [ -z "${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}" ]; then
+            echo "❌ Error: Infrastructure variables not found!"
+            echo "Please run the 'Deploy Infrastructure' workflow first."
+            exit 1
+          fi
+          echo "✅ Infrastructure variables found"
+          echo "📦 S3 Bucket: ${{ vars.S3_BUCKET_NAME }}"
+          echo "🔄 Distribution: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}"
+
+      - name: Deploy to S3
+        run: |
+          # Sync static assets with long cache (1 year)
+          aws s3 sync ./out s3://${{ vars.S3_BUCKET_NAME }} \
+            --delete \
+            --cache-control "public, max-age=31536000, immutable" \
+            --exclude "*.html" \
+            --exclude "*.json"
+          
+          # Sync HTML and JSON files with no cache (always fresh)
+          aws s3 sync ./out s3://${{ vars.S3_BUCKET_NAME }} \
+            --cache-control "public, max-age=0, must-revalidate" \
+            --exclude "*" \
+            --include "*.html" \
+            --include "*.json"
+
+      - name: Invalidate CloudFront Cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --paths "/*"
+
+      - name: Summary
+        run: |
+          echo "## ✅ Application Deployed Successfully" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🌐 **Live URL**: https://${{ vars.CLOUDFRONT_DOMAIN }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⏱️ CloudFront cache invalidation in progress..." >> $GITHUB_STEP_SUMMARY
+          echo "Changes will be visible in 1-2 minutes." >> $GITHUB_STEP_SUMMARY

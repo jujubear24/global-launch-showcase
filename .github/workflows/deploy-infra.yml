@@ -1,0 +1,148 @@
+# .github/workflows/deploy-infra.yml
+# This workflow manages the AWS INFRASTRUCTURE using Terraform.
+# It must be triggered MANUALLY from the GitHub Actions UI.
+# This prevents accidental infrastructure changes on every push.
+
+name: Manage Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Terraform action to perform'
+        required: true
+        type: choice
+        options:
+          - apply
+          - destroy
+      confirmation:
+        description: 'Type the action name again to confirm (apply or destroy)'
+        required: true
+        type: string
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Validate Confirmation
+        env:
+          ACTION: ${{ github.event.inputs.action }}
+          CONFIRMATION: ${{ github.event.inputs.confirmation }}
+        run: |
+          if [ "$ACTION" != "$CONFIRMATION" ]; then
+            echo "❌ Error: Confirmation does not match action"
+            echo "Action: $ACTION"
+            echo "Confirmation: $CONFIRMATION"
+            exit 1
+          fi
+          echo "✅ Confirmation verified"
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ~1.5
+          terraform_wrapper: false  # Required for output parsing
+
+      - name: Terraform Format Check
+        working-directory: ./terraform
+        run: terraform fmt -check
+        continue-on-error: true
+
+      - name: Terraform Init
+        working-directory: ./terraform
+        run: terraform init
+
+      - name: Terraform Validate
+        working-directory: ./terraform
+        run: terraform validate
+
+      - name: Terraform Plan
+        env:
+          TF_ACTION: ${{ github.event.inputs.action }}
+        working-directory: ./terraform
+        run: |
+          if [ "$TF_ACTION" == "destroy" ]; then
+            terraform plan -destroy -out=tfplan
+          else
+            terraform plan -out=tfplan
+          fi
+
+      - name: Terraform Apply
+        if: github.event.inputs.action == 'apply'
+        working-directory: ./terraform
+        run: terraform apply -auto-approve tfplan
+
+      - name: Get Terraform Outputs (Apply Only)
+        if: github.event.inputs.action == 'apply'
+        id: outputs
+        working-directory: ./terraform
+        run: |
+          echo "s3_bucket=$(terraform output -raw s3_bucket_name)" >> $GITHUB_OUTPUT
+          echo "distribution_id=$(terraform output -raw cloudfront_distribution_id)" >> $GITHUB_OUTPUT
+          echo "cloudfront_domain=$(terraform output -raw cloudfront_domain_name)" >> $GITHUB_OUTPUT
+          echo "api_url=$(terraform output -raw api_gateway_url)" >> $GITHUB_OUTPUT
+
+      - name: Update Repository Variables (Apply Only)
+        if: github.event.inputs.action == 'apply'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh variable set S3_BUCKET_NAME --body "${{ steps.outputs.outputs.s3_bucket }}"
+          gh variable set CLOUDFRONT_DISTRIBUTION_ID --body "${{ steps.outputs.outputs.distribution_id }}"
+          gh variable set CLOUDFRONT_DOMAIN --body "${{ steps.outputs.outputs.cloudfront_domain }}"
+          gh variable set API_GATEWAY_URL --body "${{ steps.outputs.outputs.api_url }}"
+
+      - name: Terraform Destroy
+        if: github.event.inputs.action == 'destroy'
+        working-directory: ./terraform
+        run: terraform destroy -auto-approve
+
+      - name: Clear Repository Variables (Destroy Only)
+        if: github.event.inputs.action == 'destroy'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        continue-on-error: true
+        run: |
+          gh variable delete S3_BUCKET_NAME || true
+          gh variable delete CLOUDFRONT_DISTRIBUTION_ID || true
+          gh variable delete CLOUDFRONT_DOMAIN || true
+          gh variable delete API_GATEWAY_URL || true
+
+      - name: Summary - Apply
+        if: github.event.inputs.action == 'apply'
+        run: |
+          echo "## 🏗️ Infrastructure Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Resource | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| CloudFront URL | https://${{ steps.outputs.outputs.cloudfront_domain }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| S3 Bucket | ${{ steps.outputs.outputs.s3_bucket }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Distribution ID | ${{ steps.outputs.outputs.distribution_id }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| API Gateway | ${{ steps.outputs.outputs.api_url }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Repository variables have been updated automatically." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "You can now deploy your application using the 'Deploy Application' workflow." >> $GITHUB_STEP_SUMMARY
+
+      - name: Summary - Destroy
+        if: github.event.inputs.action == 'destroy'
+        run: |
+          echo "## 🗑️ Infrastructure Destroyed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "All AWS resources have been removed." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Repository variables have been cleared." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ **Warning**: Application deployments will fail until infrastructure is recreated." >> $GITHUB_STEP_SUMMARY
