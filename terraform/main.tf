@@ -76,30 +76,6 @@ resource "aws_iam_role" "lambda_exec_role" {
   }
 }
 
-#------------------------------------------------------------------------------
-# Outputs
-#------------------------------------------------------------------------------
-
-output "cloudfront_distribution_id" {
-  value       = aws_cloudfront_distribution.s3_distribution.id
-  description = "CloudFront Distribution ID"
-}
-
-output "cloudfront_domain_name" {
-  value       = aws_cloudfront_distribution.s3_distribution.domain_name
-  description = "CloudFront Distribution Domain Name"
-}
-
-output "s3_bucket_name" {
-  value       = aws_s3_bucket.site_bucket.id
-  description = "S3 Bucket Name"
-}
-
-output "api_gateway_url" {
-  value       = "${aws_api_gateway_rest_api.api.id}.execute-api.${var.aws_region}.amazonaws.com/${aws_api_gateway_stage.api_stage.stage_name}"
-  description = "API Gateway URL"
-}
-
 # Create IAM policy for Lambda function permissions
 resource "aws_iam_policy" "lambda_policy" {
   name        = "${var.project_name}-lambda-policy"
@@ -390,7 +366,7 @@ data "aws_iam_policy_document" "s3_policy" {
       "${aws_s3_bucket.site_bucket.arn}/*"
     ]
     principals {
-      type = "AWS"
+      type        = "AWS"
       # IMPORTANT: Replace with your actual IAM user ARN from the error message
       identifiers = ["arn:aws:iam::288232812020:user/github-actions-deployer"]
     }
