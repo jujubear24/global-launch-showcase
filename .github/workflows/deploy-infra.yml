@@ -23,10 +23,10 @@ on:
 jobs:
   terraform:
     runs-on: ubuntu-latest
-
+    
     permissions:
       contents: read
-      variables: write
+      id-token: write
     
     steps:
       - name: Validate Confirmation
@@ -56,7 +56,7 @@ jobs:
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ~1.5
-          terraform_wrapper: false  # Required for output parsing
+          terraform_wrapper: false
 
       - name: Terraform Format Check
         working-directory: ./terraform
@@ -102,10 +102,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh variable set S3_BUCKET_NAME --body "${{ steps.outputs.outputs.s3_bucket }}"
-          gh variable set CLOUDFRONT_DISTRIBUTION_ID --body "${{ steps.outputs.outputs.distribution_id }}"
-          gh variable set CLOUDFRONT_DOMAIN --body "${{ steps.outputs.outputs.cloudfront_domain }}"
-          gh variable set API_GATEWAY_URL --body "${{ steps.outputs.outputs.api_url }}"
+          gh variable set S3_BUCKET_NAME --body "${{ steps.outputs.outputs.s3_bucket }}" || echo "⚠️  Failed to set S3_BUCKET_NAME"
+          gh variable set CLOUDFRONT_DISTRIBUTION_ID --body "${{ steps.outputs.outputs.distribution_id }}" || echo "⚠️  Failed to set CLOUDFRONT_DISTRIBUTION_ID"
+          gh variable set CLOUDFRONT_DOMAIN --body "${{ steps.outputs.outputs.cloudfront_domain }}" || echo "⚠️  Failed to set CLOUDFRONT_DOMAIN"
+          gh variable set API_GATEWAY_URL --body "${{ steps.outputs.outputs.api_url }}" || echo "⚠️  Failed to set API_GATEWAY_URL"
 
       - name: Terraform Destroy
         if: github.event.inputs.action == 'destroy'
