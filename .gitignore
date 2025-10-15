@@ -52,3 +52,4 @@ next-env.d.ts
 crash.log
 terraform.tfvars
 
+infra-complete-cleanup.sh
