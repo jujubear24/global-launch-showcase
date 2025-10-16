@@ -97,6 +97,15 @@ jobs:
           echo "distribution_id=$(terraform output -raw cloudfront_distribution_id)" >> $GITHUB_OUTPUT
           echo "cloudfront_domain=$(terraform output -raw cloudfront_domain_name)" >> $GITHUB_OUTPUT
           echo "api_url=$(terraform output -raw api_gateway_url)" >> $GITHUB_OUTPUT
+      
+      - name: Debug Token Permissions
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          echo "--- Verifying token permissions ---"
+          gh auth status -h github.com
+          echo "------------------------------------"
+      
 
       - name: Update Repository Variables (Apply Only)
         if: github.event.inputs.action == 'apply'
