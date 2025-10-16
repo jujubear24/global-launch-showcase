@@ -101,7 +101,7 @@ jobs:
       - name: Update Repository Variables (Apply Only)
         if: github.event.inputs.action == 'apply'
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
           gh variable set S3_BUCKET_NAME --body "${{ steps.outputs.outputs.s3_bucket }}" 
           gh variable set CLOUDFRONT_DISTRIBUTION_ID --body "${{ steps.outputs.outputs.distribution_id }}" 
