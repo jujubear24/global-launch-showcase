@@ -327,7 +327,39 @@ resource "aws_wafv2_web_acl" "web_acl" {
     allow {}
   }
 
-  # Rule 1: AWS Managed Common Rule Set
+  # Rule 1: Allow all API traffic (bypass all WAF rules for /default/* path)
+  rule {
+    name     = "AllowAPITraffic"
+    priority = 0
+
+    action {
+      allow {}
+    }
+
+    statement {
+      byte_match_statement {
+        search_string         = "/default/"
+        positional_constraint = "CONTAINS"
+
+        field_to_match {
+          uri_path {}
+        }
+
+        text_transformation {
+          priority = 0
+          type     = "NONE"
+        }
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "allowAPITraffic"
+      sampled_requests_enabled   = true
+    }
+  }
+
+  # Rule 2: AWS Managed Common Rule Set (only for non-API traffic)
   rule {
     name     = "AWS-AWSManagedRulesCommonRuleSet"
     priority = 1
@@ -350,9 +382,9 @@ resource "aws_wafv2_web_acl" "web_acl" {
     }
   }
 
-  # Rule 2: Block Cross-Site Scripting (XSS) attempts in query strings
+  # Rule 3: Rate limiting to prevent DDoS
   rule {
-    name     = "BlockXSS"
+    name     = "RateLimitRule"
     priority = 2
 
     action {
@@ -360,21 +392,15 @@ resource "aws_wafv2_web_acl" "web_acl" {
     }
 
     statement {
-      xss_match_statement {
-        field_to_match {
-          query_string {}
-        }
-
-        text_transformation {
-          priority = 0
-          type     = "URL_DECODE"
-        }
+      rate_based_statement {
+        limit              = 10000
+        aggregate_key_type = "IP"
       }
     }
 
     visibility_config {
       cloudwatch_metrics_enabled = true
-      metric_name                = "blockXSS"
+      metric_name                = "rateLimitRule"
       sampled_requests_enabled   = true
     }
   }
