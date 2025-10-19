@@ -24,6 +24,21 @@ logs_client = boto3.client("logs")
 WAF_LOG_GROUP_NAME: str = os.environ.get("WAF_LOG_GROUP_NAME", "")
 
 
+def get_cors_headers() -> Dict[str, str]:
+    """
+    Returns standard CORS headers to be included in all responses.
+
+    Returns:
+        Dictionary of CORS headers
+    """
+    return {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+        "Access-Control-Allow-Methods": "GET,OPTIONS",
+    }
+
+
 def get_visitor_location(event: Dict[str, Any]) -> Dict[str, Any]:
     """
     Extracts visitor location information from CloudFront headers.
@@ -49,10 +64,7 @@ def get_visitor_location(event: Dict[str, Any]) -> Dict[str, Any]:
 
     return {
         "statusCode": 200,
-        "headers": {
-            "Content-Type": "application/json",
-            "Access-Control-Allow-Origin": "*",
-        },
+        "headers": get_cors_headers(),
         "body": json.dumps(
             {"city": city, "country": country, "edgeLocation": edge_location}
         ),
@@ -79,6 +91,7 @@ def get_waf_block_count(event: Dict[str, Any]) -> Dict[str, Any]:
     if not WAF_LOG_GROUP_NAME:
         return {
             "statusCode": 500,
+            "headers": get_cors_headers(),
             "body": json.dumps({"error": "WAF log group name not configured."}),
         }
 
@@ -127,10 +140,7 @@ def get_waf_block_count(event: Dict[str, Any]) -> Dict[str, Any]:
 
         return {
             "statusCode": 200,
-            "headers": {
-                "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*",
-            },
+            "headers": get_cors_headers(),
             "body": json.dumps({"blockCount": block_count}),
         }
 
@@ -138,6 +148,7 @@ def get_waf_block_count(event: Dict[str, Any]) -> Dict[str, Any]:
         print(f"Error querying WAF logs: {e}")
         return {
             "statusCode": 500,
+            "headers": get_cors_headers(),
             "body": json.dumps(
                 {"error": "Failed to query WAF logs.", "details": str(e)}
             ),
@@ -175,7 +186,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         # Return error for missing or invalid action parameter
         return {
             "statusCode": 400,
-            "headers": {"Content-Type": "application/json"},
+            "headers": get_cors_headers(),  # FIXED: Added CORS headers to error response
             "body": json.dumps(
                 {
                     "error": "Missing or invalid action parameter.",

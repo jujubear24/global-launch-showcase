@@ -188,6 +188,10 @@ resource "aws_api_gateway_resource" "location_resource" {
   path_part   = "getVisitorLocation"
 }
 
+#------------------------------------------------------------------------------
+# GET Method Configuration
+#------------------------------------------------------------------------------
+
 # Define GET method for location endpoint
 resource "aws_api_gateway_method" "get_location_method" {
   rest_api_id   = aws_api_gateway_rest_api.api.id
@@ -206,6 +210,62 @@ resource "aws_api_gateway_integration" "lambda_integration" {
   uri                     = aws_lambda_function.api_handler.invoke_arn
 }
 
+#------------------------------------------------------------------------------
+# OPTIONS Method Configuration (CORS Preflight)
+#------------------------------------------------------------------------------
+
+# Add OPTIONS method for CORS preflight
+resource "aws_api_gateway_method" "options_location_method" {
+  rest_api_id   = aws_api_gateway_rest_api.api.id
+  resource_id   = aws_api_gateway_resource.location_resource.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+# CORS integration (mock response)
+resource "aws_api_gateway_integration" "options_integration" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  resource_id = aws_api_gateway_resource.location_resource.id
+  http_method = aws_api_gateway_method.options_location_method.http_method
+  type        = "MOCK"
+  
+  request_templates = {
+    "application/json" = "{\"statusCode\": 200}"
+  }
+}
+
+# OPTIONS method response
+resource "aws_api_gateway_method_response" "options_response" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  resource_id = aws_api_gateway_resource.location_resource.id
+  http_method = aws_api_gateway_method.options_location_method.http_method
+  status_code = "200"
+  
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = true
+  }
+}
+
+# OPTIONS integration response
+resource "aws_api_gateway_integration_response" "options_integration_response" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  resource_id = aws_api_gateway_resource.location_resource.id
+  http_method = aws_api_gateway_method.options_location_method.http_method  # FIXED: Was referencing wrong resource
+  status_code = aws_api_gateway_method_response.options_response.status_code
+  
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+    "method.response.header.Access-Control-Allow-Methods" = "'GET,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+  }
+}
+
+#------------------------------------------------------------------------------
+# API Gateway Deployment
+#------------------------------------------------------------------------------
+
 # Deploy API Gateway
 # Uses triggers to automatically redeploy when API configuration changes
 resource "aws_api_gateway_deployment" "api_deployment" {
@@ -218,6 +278,11 @@ resource "aws_api_gateway_deployment" "api_deployment" {
       aws_api_gateway_resource.location_resource.id,
       aws_api_gateway_method.get_location_method.id,
       aws_api_gateway_integration.lambda_integration.id,
+      # ADDED: Include CORS resources in deployment triggers
+      aws_api_gateway_method.options_location_method.id,
+      aws_api_gateway_integration.options_integration.id,
+      aws_api_gateway_method_response.options_response.id,
+      aws_api_gateway_integration_response.options_integration_response.id,
     ]))
   }
 
@@ -402,8 +467,8 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   origin {
     domain_name = "${aws_api_gateway_rest_api.api.id}.execute-api.${var.aws_region}.amazonaws.com"
     origin_id   = "APIGW-${aws_api_gateway_rest_api.api.id}"
+    origin_path = "/prod"  # ADDED: This fixes the 403 error
     
-
     custom_origin_config {
       http_port              = 80
       https_port             = 443
