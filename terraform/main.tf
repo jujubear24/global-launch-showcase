@@ -402,7 +402,7 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   origin {
     domain_name = "${aws_api_gateway_rest_api.api.id}.execute-api.${var.aws_region}.amazonaws.com"
     origin_id   = "APIGW-${aws_api_gateway_rest_api.api.id}"
-    origin_path = "/${aws_api_gateway_stage.api_stage.stage_name}"
+    
 
     custom_origin_config {
       http_port              = 80
