@@ -54,20 +54,39 @@ export default function Home() {
 
     // --- Fetch Location Data ---
     fetch(`${baseApiUrl}?action=location&${cacheBuster.substring(1)}`)
-      .then(response => response.json())
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
       .then(data => {
-        setLocation(`${data.city || 'N/A'}, ${data.country || 'N/A'}`);
+        // --- FIX: Changed data.country to data.region ---
+        // The API returns 'city' and 'region', not 'country'.
+        setLocation(`${data.city || 'N/A'}, ${data.region || 'N/A'}`);
         setEdgeLocation(data.edgeLocation || 'N/A');
       })
-      .catch(error => console.error("Error fetching location data:", error));
+      .catch(error => {
+        console.error("Error fetching location data:", error);
+        setLocation("Error");
+        setEdgeLocation("Error");
+      });
 
     // --- Fetch WAF Block Count ---
     fetch(`${baseApiUrl}?action=waf&${cacheBuster.substring(1)}`)
-      .then(response => response.json())
+      .then(response => {
+         if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
       .then(data => {
         setThreats(data.blockCount || 0);
       })
-      .catch(error => console.error("Error fetching WAF data:", error));
+      .catch(error => {
+        console.error("Error fetching WAF data:", error);
+        setThreats(0);
+      });
     } else {
       setLocation('Localhost');
       setEdgeLocation('N/A');
@@ -100,9 +119,14 @@ export default function Home() {
           </div>
           <div className="w-full max-w-4xl mx-auto bg-gray-800 rounded-lg shadow-2xl overflow-hidden">
              <img 
-                src="/aether_drone.png" 
+                src="https://placehold.co/1200x600/1f2937/38bdf8?text=Aether+Drone+Image" 
                 alt="Aether Drone in a futuristic studio setting" 
                 className="w-full h-auto object-cover"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.onerror = null; 
+                  target.src='https://placehold.co/1200x600/1f2937/38bdf8?text=Aether+Drone';
+                }}
              />
           </div>
         </section>

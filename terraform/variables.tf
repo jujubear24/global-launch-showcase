@@ -12,5 +12,9 @@ variable "project_name" {
     default     = "global-launch-showcase"
 }
 
+variable "github_actions_principal_arn" {
+  description = "The ARN of the IAM user or role for GitHub Actions that will deploy to S3."
+  type        = string
+}
 
 

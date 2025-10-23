@@ -17,8 +17,9 @@ from typing import Dict, Any, Optional
 
 import boto3
 
-# Initialize AWS clients
-logs_client = boto3.client("logs")
+# WAF logs for CloudFront are always in us-east-1.
+# We must explicitly create the client in that region.
+logs_client = boto3.client("logs", region_name="us-east-1")
 
 # Get the WAF log group name from environment variables
 WAF_LOG_GROUP_NAME: str = os.environ.get("WAF_LOG_GROUP_NAME", "")
@@ -52,21 +53,27 @@ def get_visitor_location(event: Dict[str, Any]) -> Dict[str, Any]:
     Returns:
         A dictionary containing the HTTP response with location data including:
         - city: Viewer's city
-        - country: Viewer's country code
+        - region: Viewer's region, state, or province (e.g., ON, CA, NY)
         - edgeLocation: CloudFront edge location serving the request
     """
     headers = event.get("headers", {})
 
     # CloudFront headers that provide geo-location info
+    # NOTE: Header names are converted to lowercase by API Gateway
     city = headers.get("cloudfront-viewer-city", "Unknown")
-    country = headers.get("cloudfront-viewer-country", "Unknown")
+    # This header provides the region/state/province code
+    region = headers.get("cloudfront-viewer-country-region", "Unknown")
     edge_location = headers.get("x-amz-cf-pop", "Unknown")
 
     return {
         "statusCode": 200,
         "headers": get_cors_headers(),
         "body": json.dumps(
-            {"city": city, "country": country, "edgeLocation": edge_location}
+            {
+                "city": city,
+                "region": region,
+                "edgeLocation": edge_location,
+            }
         ),
     }
 
@@ -186,7 +193,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         # Return error for missing or invalid action parameter
         return {
             "statusCode": 400,
-            "headers": get_cors_headers(),  # FIXED: Added CORS headers to error response
+            "headers": get_cors_headers(),
             "body": json.dumps(
                 {
                     "error": "Missing or invalid action parameter.",
