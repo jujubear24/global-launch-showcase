@@ -119,7 +119,7 @@ export default function Home() {
           </div>
           <div className="w-full max-w-4xl mx-auto bg-gray-800 rounded-lg shadow-2xl overflow-hidden">
              <img 
-                src="https://placehold.co/1200x600/1f2937/38bdf8?text=Aether+Drone+Image" 
+                src="aether_drone.png" 
                 alt="Aether Drone in a futuristic studio setting" 
                 className="w-full h-auto object-cover"
                 onError={(e) => {
