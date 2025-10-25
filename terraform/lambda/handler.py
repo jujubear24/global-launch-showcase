@@ -54,16 +54,37 @@ def get_visitor_location(event: Dict[str, Any]) -> Dict[str, Any]:
         A dictionary containing the HTTP response with location data including:
         - city: Viewer's city
         - region: Viewer's region, state, or province (e.g., ON, CA, NY)
-        - edgeLocation: CloudFront edge location serving the request
+        - country: Viewer's country code
+        - edgeLocation: CloudFront edge location identifier from X-Amz-Cf-Id
     """
     headers = event.get("headers", {})
 
+    # DEBUG LOGGING: Print all headers received
+    print("=" * 80)
+    print("DEBUG: All headers received by Lambda:")
+    print(json.dumps(headers, indent=2))
+    print("=" * 80)
+
     # CloudFront headers that provide geo-location info
     # NOTE: Header names are converted to lowercase by API Gateway
-    city = headers.get("cloudfront-viewer-city", "Unknown")
+    city: str = headers.get("cloudfront-viewer-city", "Unknown")
     # This header provides the region/state/province code
-    region = headers.get("cloudfront-viewer-country-region", "Unknown")
-    edge_location = headers.get("x-amz-cf-pop", "Unknown")
+    region: str = headers.get("cloudfront-viewer-country-region", "Unknown")
+    # Country code (e.g., CA, US)
+    country: str = headers.get("cloudfront-viewer-country", "Unknown")
+    # Edge location identifier - extracted from X-Amz-Cf-Id header
+    # This contains the POP (Point of Presence) code in the format: XXXXX-YYYYY
+    cf_id: str = headers.get("x-amz-cf-id", "Unknown")
+    edge_location: str = cf_id.split("-")[0] if cf_id != "Unknown" else "Unknown"
+
+    # DEBUG LOGGING: Print extracted values
+    print("DEBUG: Extracted location values:")
+    print(f"  City: {city}")
+    print(f"  Region: {region}")
+    print(f"  Country: {country}")
+    print(f"  CF-ID (full): {cf_id}")
+    print(f"  Edge Location (POP): {edge_location}")
+    print("=" * 80)
 
     return {
         "statusCode": 200,
@@ -72,6 +93,7 @@ def get_visitor_location(event: Dict[str, Any]) -> Dict[str, Any]:
             {
                 "city": city,
                 "region": region,
+                "country": country,
                 "edgeLocation": edge_location,
             }
         ),
@@ -94,8 +116,14 @@ def get_waf_block_count(event: Dict[str, Any]) -> Dict[str, Any]:
     Raises:
         Returns 500 status code if WAF log group is not configured or query fails
     """
+    # DEBUG LOGGING: Check WAF configuration
+    print("=" * 80)
+    print(f"DEBUG: WAF_LOG_GROUP_NAME = {WAF_LOG_GROUP_NAME}")
+    print("=" * 80)
+
     # Validate WAF log group configuration
     if not WAF_LOG_GROUP_NAME:
+        print("ERROR: WAF log group name not configured!")
         return {
             "statusCode": 500,
             "headers": get_cors_headers(),
@@ -103,47 +131,68 @@ def get_waf_block_count(event: Dict[str, Any]) -> Dict[str, Any]:
         }
 
     # Define time range for query (last hour)
-    end_time = datetime.utcnow()
-    start_time = end_time - timedelta(hours=1)
+    end_time: datetime = datetime.utcnow()
+    start_time: datetime = end_time - timedelta(hours=1)
 
     # CloudWatch Logs Insights query to count blocked requests
-    query = """
+    query: str = """
     fields @timestamp, httpRequest.clientIp, action
     | filter action = 'BLOCK'
     | stats count(*) as blockCount
     """
 
+    print(f"DEBUG: Starting WAF query from {start_time} to {end_time}")
+
     try:
         # Start the CloudWatch Logs Insights query
-        start_query_response = logs_client.start_query(
+        start_query_response: Dict[str, Any] = logs_client.start_query(
             logGroupName=WAF_LOG_GROUP_NAME,
             startTime=int(start_time.timestamp()),
             endTime=int(end_time.timestamp()),
             queryString=query,
         )
 
-        query_id = start_query_response["queryId"]
+        query_id: str = start_query_response["queryId"]
+        print(f"DEBUG: Query started with ID: {query_id}")
 
         # Poll for query completion
         response: Optional[Dict[str, Any]] = None
-        status = "Running"
+        status: str = "Running"
+        poll_count: int = 0
 
         while status in ["Running", "Scheduled"]:
             time.sleep(1)
+            poll_count += 1
             response = logs_client.get_query_results(queryId=query_id)
             status = response["status"]
+            print(f"DEBUG: Poll #{poll_count} - Query status: {status}")
+
+        print(
+            f"DEBUG: Query completed. Response: {json.dumps(response, indent=2, default=str)}"
+        )
 
         # Extract block count from query results
-        block_count = 0
+        block_count: int = 0
         if response and response["status"] == "Complete" and response["results"]:
             # The result is a list of lists of dicts
             # Example: [[{'field': 'blockCount', 'value': '123'}]]
-            result_field = response["results"][0]
-            count_entry = next(
+            result_field: list = response["results"][0]
+            print(f"DEBUG: Result field: {json.dumps(result_field, indent=2)}")
+
+            count_entry: Optional[Dict[str, str]] = next(
                 (item for item in result_field if item["field"] == "blockCount"), None
             )
             if count_entry:
                 block_count = int(count_entry["value"])
+                print(f"DEBUG: Block count extracted: {block_count}")
+            else:
+                print("DEBUG: 'blockCount' field not found in results")
+        else:
+            print(
+                f"DEBUG: Query did not complete successfully. Status: {response['status'] if response else 'None'}"
+            )
+
+        print("=" * 80)
 
         return {
             "statusCode": 200,
@@ -152,7 +201,8 @@ def get_waf_block_count(event: Dict[str, Any]) -> Dict[str, Any]:
         }
 
     except Exception as e:
-        print(f"Error querying WAF logs: {e}")
+        print(f"ERROR querying WAF logs: {e}")
+        print("=" * 80)
         return {
             "statusCode": 500,
             "headers": get_cors_headers(),
@@ -181,9 +231,17 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         GET /default/getVisitorLocation?action=location
         GET /default/getVisitorLocation?action=waf
     """
+    # DEBUG LOGGING: Print entire event
+    print("=" * 80)
+    print("DEBUG: Full Lambda event:")
+    print(json.dumps(event, indent=2, default=str))
+    print("=" * 80)
+
     # Extract action parameter from query string
-    query_params = event.get("queryStringParameters", {}) or {}
-    action = query_params.get("action")
+    query_params: Dict[str, str] = event.get("queryStringParameters", {}) or {}
+    action: Optional[str] = query_params.get("action")
+
+    print(f"DEBUG: Action requested: {action}")
 
     if action == "location":
         return get_visitor_location(event)
@@ -191,6 +249,7 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         return get_waf_block_count(event)
     else:
         # Return error for missing or invalid action parameter
+        print(f"ERROR: Invalid action '{action}'")
         return {
             "statusCode": 400,
             "headers": get_cors_headers(),

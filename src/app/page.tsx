@@ -35,63 +35,64 @@ const ConfirmationModal = ({ onConfirm, onCancel }: ConfirmationModalProps) => {
 };
 
 export default function Home() {
-  const [location, setLocation] = useState('...');
-  const [edgeLocation, setEdgeLocation] = useState('...');
-  const [threats, setThreats] = useState(0);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [location, setLocation] = useState<string>('...');
+  const [edgeLocation, setEdgeLocation] = useState<string>('...');
+  const [threats, setThreats] = useState<number>(0);
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
   const handleTestSecurity = () => {
-    const maliciousUrl = window.location.origin + '?q=<script>alert("xss")</script>';
+    const maliciousUrl: string = window.location.origin + '?q=<script>alert("xss")</script>';
     window.location.href = maliciousUrl;
   };
 
   useEffect(() => {
     if (window.location.hostname !== 'localhost') {
 
-    // --- single, reliable API endpoint ---
-    const baseApiUrl = '/default/getVisitorLocation';
-    const cacheBuster = `?cacheBust=${new Date().getTime()}`;
+      // --- single, reliable API endpoint ---
+      const baseApiUrl: string = '/default/getVisitorLocation';
+      const cacheBuster: string = `?cacheBust=${new Date().getTime()}`;
 
-    // --- Fetch Location Data ---
-    fetch(`${baseApiUrl}?action=location&${cacheBuster.substring(1)}`)
-      .then(response => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-      })
-      .then(data => {
-        // --- FIX: Changed data.country to data.region ---
-        // The API returns 'city' and 'region', not 'country'.
-        setLocation(`${data.city || 'N/A'}, ${data.region || 'N/A'}`);
-        setEdgeLocation(data.edgeLocation || 'N/A');
-      })
-      .catch(error => {
-        console.error("Error fetching location data:", error);
-        setLocation("Error");
-        setEdgeLocation("Error");
-      });
+      // --- Fetch Location Data ---
+      fetch(`${baseApiUrl}?action=location&${cacheBuster.substring(1)}`)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          // Updated to use new response format with city, region, country, and edgeLocation
+          const cityDisplay: string = data.city || 'N/A';
+          const regionDisplay: string = data.region || 'N/A';
+          const countryDisplay: string = data.country || 'N/A';
+          setLocation(`${cityDisplay}, ${regionDisplay} (${countryDisplay})`);
+          setEdgeLocation(data.edgeLocation || 'N/A');
+        })
+        .catch(error => {
+          console.error("Error fetching location data:", error);
+          setLocation("Error");
+          setEdgeLocation("Error");
+        });
 
-    // --- Fetch WAF Block Count ---
-    fetch(`${baseApiUrl}?action=waf&${cacheBuster.substring(1)}`)
-      .then(response => {
-         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-      })
-      .then(data => {
-        setThreats(data.blockCount || 0);
-      })
-      .catch(error => {
-        console.error("Error fetching WAF data:", error);
-        setThreats(0);
-      });
+      // --- Fetch WAF Block Count ---
+      fetch(`${baseApiUrl}?action=waf&${cacheBuster.substring(1)}`)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          setThreats(data.blockCount || 0);
+        })
+        .catch(error => {
+          console.error("Error fetching WAF data:", error);
+          setThreats(0);
+        });
     } else {
       setLocation('Localhost');
       setEdgeLocation('N/A');
       setThreats(0);
-      
     }
 
   }, []);
@@ -100,7 +101,7 @@ export default function Home() {
     <div className="bg-gray-900 text-white min-h-screen font-sans">
       {/* Conditionally render the modal */}
       {isModalOpen && <ConfirmationModal onConfirm={handleTestSecurity} onCancel={() => setIsModalOpen(false)} />}
-      
+
       <main className="container mx-auto px-4 py-8 md:py-16">
         <section className="text-center mb-20 md:mb-32">
           <h1 className="text-5xl md:text-7xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-cyan-400">
@@ -118,16 +119,16 @@ export default function Home() {
             </a>
           </div>
           <div className="w-full max-w-4xl mx-auto bg-gray-800 rounded-lg shadow-2xl overflow-hidden">
-             <img 
-                src="aether_drone.png" 
-                alt="Aether Drone in a futuristic studio setting" 
-                className="w-full h-auto object-cover"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.onerror = null; 
-                  target.src='https://placehold.co/1200x600/1f2937/38bdf8?text=Aether+Drone';
-                }}
-             />
+            <img
+              src="aether_drone.png"
+              alt="Aether Drone in a futuristic studio setting"
+              className="w-full h-auto object-cover"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.onerror = null;
+                target.src = 'https://placehold.co/1200x600/1f2937/38bdf8?text=Aether+Drone';
+              }}
+            />
           </div>
         </section>
 
@@ -176,14 +177,14 @@ export default function Home() {
               <p className="text-2xl font-bold text-white">{threats}</p>
             </div>
           </div>
-           <div className="text-center mt-8">
-              <button 
-                onClick={() => setIsModalOpen(true)}
-                className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-full transition-transform transform hover:scale-105"
-              >
-                Test Security
-              </button>
-            </div>
+          <div className="text-center mt-8">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-full transition-transform transform hover:scale-105"
+            >
+              Test Security
+            </button>
+          </div>
         </section>
 
       </main>

@@ -21,7 +21,6 @@ data "aws_cloudfront_cache_policy" "caching_optimized" {
   name = "Managed-CachingOptimized"
 }
 
-
 #==============================================================================
 # Local Variables
 #==============================================================================
@@ -29,16 +28,16 @@ data "aws_cloudfront_cache_policy" "caching_optimized" {
 locals {
   # Define the API Gateway access log format once to avoid repetition and cycles.
   api_gateway_access_log_format = jsonencode({
-      requestId               = "$context.requestId"
-      sourceIp                = "$context.identity.sourceIp"
-      requestTime             = "$context.requestTime"
-      protocol                = "$context.protocol"
-      httpMethod              = "$context.httpMethod"
-      resourcePath            = "$context.resourcePath"
-      status                  = "$context.status"
-      responseLength          = "$context.responseLength"
-      errorMessage            = "$context.error.message"
-      extendedRequestId       = "$context.extendedRequestId"
+    requestId         = "$context.requestId"
+    sourceIp          = "$context.identity.sourceIp"
+    requestTime       = "$context.requestTime"
+    protocol          = "$context.protocol"
+    httpMethod        = "$context.httpMethod"
+    resourcePath      = "$context.resourcePath"
+    status            = "$context.status"
+    responseLength    = "$context.responseLength"
+    errorMessage      = "$context.error.message"
+    extendedRequestId = "$context.extendedRequestId"
   })
   api_gateway_policy_json = jsonencode({
     Version = "2012-10-17",
@@ -51,8 +50,6 @@ locals {
       }
     ]
   })
-
-
 }
 
 #------------------------------------------------------------------------------
@@ -66,7 +63,7 @@ resource "random_id" "bucket_suffix" {
 
 # Create S3 bucket to store static website files
 resource "aws_s3_bucket" "site_bucket" {
-  bucket = "${var.project_name}-bucket-${random_id.bucket_suffix.hex}"
+  bucket        = "${var.project_name}-bucket-${random_id.bucket_suffix.hex}"
   force_destroy = true
 
   tags = {
@@ -152,7 +149,6 @@ resource "aws_iam_policy" "lambda_policy" {
           "logs:GetQueryResults",
           "logs:FilterLogEvents"
         ],
-        # Corrected Resource ARN to reference the log group directly
         Resource = "arn:aws:logs:us-east-1:${data.aws_caller_identity.current.account_id}:log-group:${aws_cloudwatch_log_group.waf_logs.name}:*"
       }
     ]
@@ -184,7 +180,7 @@ resource "aws_lambda_function" "api_handler" {
   role             = aws_iam_role.lambda_exec_role.arn
   filename         = data.archive_file.lambda_zip.output_path
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
-  timeout          = 30 
+  timeout          = 30
 
   # Enable active X-Ray tracing
   tracing_config {
@@ -212,24 +208,19 @@ resource "aws_lambda_permission" "api_gateway_permission" {
   source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/*/*"
 }
 
-
 #------------------------------------------------------------------------------
 # API Gateway REST API Policy
 #------------------------------------------------------------------------------
 
 # This policy grants public access to invoke the API.
-# CORRECTED RESOURCE TYPE: aws_api_gateway_rest_api_policy
 resource "aws_api_gateway_rest_api_policy" "api_policy" {
   rest_api_id = aws_api_gateway_rest_api.api.id
-
-  policy = local.api_gateway_policy_json
+  policy      = local.api_gateway_policy_json
 }
 
 #------------------------------------------------------------------------------
 # API Gateway REST API Configuration
 #------------------------------------------------------------------------------
-
-
 
 # Create REST API in API Gateway
 resource "aws_api_gateway_rest_api" "api" {
@@ -295,7 +286,7 @@ resource "aws_api_gateway_integration" "options_integration" {
   resource_id = aws_api_gateway_resource.location_resource.id
   http_method = aws_api_gateway_method.options_location_method.http_method
   type        = "MOCK"
-  
+
   request_templates = {
     "application/json" = "{\"statusCode\": 200}"
   }
@@ -307,7 +298,7 @@ resource "aws_api_gateway_method_response" "options_response" {
   resource_id = aws_api_gateway_resource.location_resource.id
   http_method = aws_api_gateway_method.options_location_method.http_method
   status_code = "200"
-  
+
   response_parameters = {
     "method.response.header.Access-Control-Allow-Headers" = true
     "method.response.header.Access-Control-Allow-Methods" = true
@@ -319,9 +310,9 @@ resource "aws_api_gateway_method_response" "options_response" {
 resource "aws_api_gateway_integration_response" "options_integration_response" {
   rest_api_id = aws_api_gateway_rest_api.api.id
   resource_id = aws_api_gateway_resource.location_resource.id
-  http_method = aws_api_gateway_method.options_location_method.http_method  # FIXED: Was referencing wrong resource
+  http_method = aws_api_gateway_method.options_location_method.http_method
   status_code = aws_api_gateway_method_response.options_response.status_code
-  
+
   response_parameters = {
     "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
     "method.response.header.Access-Control-Allow-Methods" = "'GET,OPTIONS'"
@@ -345,7 +336,6 @@ resource "aws_api_gateway_deployment" "api_deployment" {
       aws_api_gateway_resource.location_resource.id,
       aws_api_gateway_method.get_location_method.id,
       aws_api_gateway_integration.lambda_integration.id,
-      # ADDED: Include CORS resources in deployment triggers
       aws_api_gateway_method.options_location_method.id,
       aws_api_gateway_integration.options_integration.id,
       aws_api_gateway_method_response.options_response.id,
@@ -353,7 +343,6 @@ resource "aws_api_gateway_deployment" "api_deployment" {
       aws_cloudwatch_log_group.api_gateway_logs.arn,
       local.api_gateway_access_log_format,
       local.api_gateway_policy_json,
-      
     ]))
   }
 
@@ -370,10 +359,9 @@ resource "aws_api_gateway_stage" "api_stage" {
 
   access_log_settings {
     destination_arn = aws_cloudwatch_log_group.api_gateway_logs.arn
-    # This JSON format provides detailed, queryable logs about each request.
-    format = local.api_gateway_access_log_format
+    format          = local.api_gateway_access_log_format
   }
-  # Add depends_on to ensure logging resources are configured before the stage is updated.
+
   depends_on = [
     aws_api_gateway_account.current,
     aws_cloudwatch_log_group.api_gateway_logs
@@ -398,10 +386,10 @@ resource "aws_iam_role" "api_gateway_logging_role" {
   name = "${var.project_name}-api-gateway-logging-role"
 
   assume_role_policy = jsonencode({
-    Version   = "2012-10-17",
+    Version = "2012-10-17",
     Statement = [{
-      Action    = "sts:AssumeRole",
-      Effect    = "Allow",
+      Action = "sts:AssumeRole",
+      Effect = "Allow",
       Principal = {
         Service = "apigateway.amazonaws.com"
       }
@@ -418,8 +406,7 @@ resource "aws_iam_role_policy_attachment" "api_gateway_logging_policy_attach" {
 # This crucial resource associates the IAM role with your API Gateway account in this region.
 resource "aws_api_gateway_account" "current" {
   cloudwatch_role_arn = aws_iam_role.api_gateway_logging_role.arn
-  # This ensures the role exists before the association is made.
-  depends_on = [aws_iam_role.api_gateway_logging_role]
+  depends_on          = [aws_iam_role.api_gateway_logging_role]
 }
 
 #------------------------------------------------------------------------------
@@ -429,8 +416,7 @@ resource "aws_api_gateway_account" "current" {
 # Create CloudWatch Log Group for WAF logs in us-east-1
 # Note: Log group name must start with 'aws-waf-logs-' and be in us-east-1
 resource "aws_cloudwatch_log_group" "waf_logs" {
-  provider = aws.us_east_1
-
+  provider          = aws.us_east_1
   name              = "aws-waf-logs-${var.project_name}-web-acl"
   retention_in_days = 7
 }
@@ -442,9 +428,8 @@ resource "aws_cloudwatch_log_group" "waf_logs" {
 # Create WAF Web ACL with security rules (in us-east-1 for CloudFront)
 resource "aws_wafv2_web_acl" "web_acl" {
   provider = aws.us_east_1
-
-  name  = "${var.project_name}-web-acl"
-  scope = "CLOUDFRONT"
+  name     = "${var.project_name}-web-acl"
+  scope    = "CLOUDFRONT"
 
   # Allow traffic by default (rules below will block specific threats)
   default_action {
@@ -527,12 +512,10 @@ resource "aws_wafv2_web_acl" "web_acl" {
 
 # Enable WAF logging to CloudWatch
 resource "aws_wafv2_web_acl_logging_configuration" "web_acl_logging" {
-  provider = aws.us_east_1
-
+  provider                = aws.us_east_1
   log_destination_configs = [aws_cloudwatch_log_group.waf_logs.arn]
   resource_arn            = aws_wafv2_web_acl.web_acl.arn
-
-  depends_on = [aws_wafv2_web_acl.web_acl]
+  depends_on              = [aws_wafv2_web_acl.web_acl]
 }
 
 #------------------------------------------------------------------------------
@@ -548,7 +531,6 @@ data "aws_cloudfront_cache_policy" "caching_disabled" {
 data "aws_cloudfront_origin_request_policy" "all_viewer_except_host" {
   name = "Managed-AllViewerExceptHostHeader"
 }
-
 
 #------------------------------------------------------------------------------
 # CloudFront Distribution and S3 Bucket Policy
@@ -586,7 +568,6 @@ data "aws_iam_policy_document" "s3_policy" {
     ]
     principals {
       type        = "AWS"
-      # IMPORTANT: Use the variable for the ARN
       identifiers = [var.github_actions_principal_arn]
     }
   }
@@ -598,16 +579,13 @@ resource "aws_s3_bucket_policy" "bucket_policy" {
   policy = data.aws_iam_policy_document.s3_policy.json
 }
 
-
-
-
 # Create CloudFront distribution for global content delivery
 resource "aws_cloudfront_distribution" "s3_distribution" {
   enabled             = true
   is_ipv6_enabled     = true
   comment             = "CloudFront distribution for ${var.project_name}"
   default_root_object = "index.html"
-  web_acl_id          = aws_wafv2_web_acl.web_acl.arn  
+  web_acl_id          = aws_wafv2_web_acl.web_acl.arn
 
   # Origin 1: S3 bucket for static content
   origin {
@@ -623,8 +601,8 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
   origin {
     domain_name = "${aws_api_gateway_rest_api.api.id}.execute-api.${var.aws_region}.amazonaws.com"
     origin_id   = "APIGW-${aws_api_gateway_rest_api.api.id}"
-    origin_path = "/prod"  
-    
+    origin_path = "/prod"
+
     custom_origin_config {
       http_port              = 80
       https_port             = 443
@@ -641,46 +619,27 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
     viewer_protocol_policy = "redirect-to-https"
     cache_policy_id        = data.aws_cloudfront_cache_policy.caching_optimized.id
 
-
     function_association {
       event_type   = "viewer-request"
       function_arn = aws_cloudfront_function.location_headers_function.arn
     }
-
-    # This section was overriding the cache_policy_id. 
-    # It's recommended to use a managed policy (like CachingOptimized) 
-    # or define all 'forwarded_values' settings if not using a policy.
-    # We will rely on the `caching_optimized` policy.
-    /*
-    forwarded_values {
-      query_string = false
-
-      cookies {
-        forward = "none"
-      }
-    }
-    */
   }
 
   # Ordered cache behavior for API endpoints (no caching)
   ordered_cache_behavior {
-    path_pattern           = "/default/*"
-    allowed_methods        = ["GET", "HEAD", "OPTIONS"]
-    cached_methods         = ["GET", "HEAD", "OPTIONS"]
-    target_origin_id       = "APIGW-${aws_api_gateway_rest_api.api.id}"
-    viewer_protocol_policy = "redirect-to-https"
-    # This correctly forwards query strings and cookies, and sets TTLs to 0.
-    cache_policy_id = data.aws_cloudfront_cache_policy.caching_disabled.id
-    origin_request_policy_id = aws_cloudfront_origin_request_policy.api_location_policy.id
+    path_pattern             = "/default/*"
+    allowed_methods          = ["GET", "HEAD", "OPTIONS"]
+    cached_methods           = ["GET", "HEAD", "OPTIONS"]
+    target_origin_id         = "APIGW-${aws_api_gateway_rest_api.api.id}"
+    viewer_protocol_policy   = "redirect-to-https"
+    cache_policy_id          = data.aws_cloudfront_cache_policy.caching_disabled.id
+    origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer_except_host.id
 
     function_association {
       event_type   = "viewer-request"
       function_arn = aws_cloudfront_function.location_headers_function.arn
     }
-
-
   }
-
 
   # No geographic restrictions
   restrictions {
@@ -697,49 +656,6 @@ resource "aws_cloudfront_distribution" "s3_distribution" {
 
   tags = {
     Project = var.project_name
-  }
-}
-
-#------------------------------------------------------------------------------
-# Custom CloudFront Origin Request Policy for API
-#------------------------------------------------------------------------------
-
-# This policy forwards essential headers for APIs plus CloudFront's geo-location headers.
-resource "aws_cloudfront_origin_request_policy" "api_location_policy" {
-  name    = "${var.project_name}-api-location-policy"
-  comment = "Forwards standard API headers and viewer location headers"
-
-  # We will forward all cookies
-  cookies_config {
-    cookie_behavior = "all"
-  }
-
-  # We will forward all query strings
-  query_strings_config {
-    query_string_behavior = "all"
-  }
-
-  # We will forward a specific whitelist of headers
-  headers_config {
-    header_behavior = "whitelist"
-    headers {
-      items = [
-        # Standard API headers
-        "Accept",
-        "Content-Type",
-        "Referer",
-        "User-Agent",
-        "X-Forwarded-For",
-        
-        # --- FIX: Changed to lowercase ---
-        # CloudFront Geo-location Headers
-        # These MUST be lowercase to match the headers added by the CloudFront Function.
-        "cloudfront-viewer-country",
-        "cloudfront-viewer-city",
-        "cloudfront-viewer-country-region",
-        "cloudfront-viewer-postal-code"
-      ]
-    }
   }
 }
 
