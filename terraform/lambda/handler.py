@@ -57,7 +57,7 @@ def get_visitor_location(event: Dict[str, Any]) -> Dict[str, Any]:
         - country: Viewer's country code
         - edgeLocation: CloudFront edge location identifier from X-Amz-Cf-Id
     """
-    headers = event.get("headers", {})
+    headers: Dict[str, Any] = event.get("headers", {})
 
     # DEBUG LOGGING: Print all headers received
     print("=" * 80)
@@ -65,16 +65,36 @@ def get_visitor_location(event: Dict[str, Any]) -> Dict[str, Any]:
     print(json.dumps(headers, indent=2))
     print("=" * 80)
 
+    # Helper function to extract header value (case-insensitive)
+    # API Gateway may format headers as arrays, so handle both cases
+    def get_header_value(headers: Dict[str, Any], key: str) -> str:
+        # Try exact key first
+        value: Any = headers.get(key)
+
+        # If not found, try case-insensitive search
+        if value is None:
+            for header_key, header_value in headers.items():
+                if header_key.lower() == key.lower():
+                    value = header_value
+                    break
+
+        if value is None:
+            return "Unknown"
+
+        # If it's a list, get the first element
+        if isinstance(value, list):
+            return str(value[0]) if value else "Unknown"
+        return str(value) if value else "Unknown"
+
     # CloudFront headers that provide geo-location info
-    # NOTE: Header names are converted to lowercase by API Gateway
-    city: str = headers.get("cloudfront-viewer-city", "Unknown")
+    city: str = get_header_value(headers, "cloudfront-viewer-city")
     # This header provides the region/state/province code
-    region: str = headers.get("cloudfront-viewer-country-region", "Unknown")
+    region: str = get_header_value(headers, "cloudfront-viewer-country-region")
     # Country code (e.g., CA, US)
-    country: str = headers.get("cloudfront-viewer-country", "Unknown")
+    country: str = get_header_value(headers, "cloudfront-viewer-country")
     # Edge location identifier - extracted from X-Amz-Cf-Id header
     # This contains the POP (Point of Presence) code in the format: XXXXX-YYYYY
-    cf_id: str = headers.get("x-amz-cf-id", "Unknown")
+    cf_id: str = get_header_value(headers, "x-amz-cf-id")
     edge_location: str = cf_id.split("-")[0] if cf_id != "Unknown" else "Unknown"
 
     # DEBUG LOGGING: Print extracted values
